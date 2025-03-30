@@ -18,13 +18,20 @@ typedef struct
     Node *root;
 } TwoThreeTree;
 
+// Function prototypes
 void split(TwoThreeTree *tree, Node *node);
-
 Node *search(TwoThreeTree *tree, int key);
-
 Node *searchPredecessor(Node *node, TwoThreeTree *tree);
-
 void fillSuccessor(Node *successor, TwoThreeTree *tree);
+void insertKey(Node *node, int key, TwoThreeTree *tree);
+void insert(TwoThreeTree *tree, int key);
+void deleteKey(Node *node, int key);
+void delete(TwoThreeTree *tree, int key);
+int isContains(Node *node, int key);
+void replaseBySuccessor(Node *node, int key, TwoThreeTree *tree);
+void printTree(TwoThreeTree *tree);
+void join(Node *successor, Node *joinNode);
+void share(Node *successor, Node *predecessor, Node *shareNode);
 
 void insertKey(Node *node, int key, TwoThreeTree *tree)
 {
@@ -502,11 +509,13 @@ void deleteKey(Node *node, int key)
     if (node->keys[0] == key)
     {
         node->keys[0] = node->keys[1];
+        node->keys[1] = node->keys[2];
         node->key_count--;
     }
     else if (node->keys[1] == key)
     {
         node->keys[1] = node->keys[2];
+        node->keys[2] = 0;
         node->key_count--;
     }
 }
@@ -594,6 +603,11 @@ void delete(TwoThreeTree *tree, int key)
     {
         deleteKey(temp, key);
     }
+    else if (temp->is_leaf && temp->key_count == 1)
+    {
+        deleteKey(temp, key);
+        fillSuccessor(temp, tree);
+    }
     else
     {
         replaseBySuccessor(temp, key, tree);
@@ -602,21 +616,27 @@ void delete(TwoThreeTree *tree, int key)
     return;
 }
 
-void join(Node *successor, Node *joinNode) {
+void join(Node *successor, Node *joinNode)
+{
 
-    
-    if (successor->keys[0] > joinNode->keys[0]) {
+    if (successor->keys[0] > joinNode->keys[0])
+    {
         successor->keys[1] = successor->keys[0];
         successor->keys[0] = joinNode->keys[0];
-    } else {
+    }
+    else
+    {
         successor->keys[1] = joinNode->keys[0];
     }
     successor->key_count++;
-    
-    if (successor->child_count == 2) {
+
+    if (successor->child_count == 2)
+    {
         successor->children[1] = successor->children[0];
         successor->children[0] = joinNode->children[0];
-    } else {
+    }
+    else
+    {
         successor->children[2] = successor->children[0];
         successor->children[0] = joinNode->children[0];
         successor->children[1] = joinNode->children[2];
@@ -631,8 +651,6 @@ void join(Node *successor, Node *joinNode) {
             successor->child_count++;
         }
     }
-    
-    
 
     free(joinNode);
 }
@@ -661,10 +679,7 @@ void fillSuccessor(Node *successor, TwoThreeTree *tree)
     {
         if (predecessor->children[2] == successor)
         {
-            successor->keys[0] = predecessor->keys[1];
-            successor->key_count = 1;
-            predecessor->keys[1] = 0;
-            predecessor->key_count--;
+
             Node *joinNode = predecessor->children[1]; // using like link for node wich will join or share with successor
 
             if (predecessor->children[1]->key_count == 2)
@@ -672,6 +687,11 @@ void fillSuccessor(Node *successor, TwoThreeTree *tree)
 
             else
             {
+                successor->keys[0] = predecessor->keys[1];
+                successor->key_count = 1;
+                predecessor->keys[1] = predecessor->keys[2];
+                predecessor->keys[2] = 0;
+                predecessor->key_count--;
                 predecessor->children[1] = NULL;
                 predecessor->child_count--;
                 join(successor, joinNode);
@@ -680,10 +700,6 @@ void fillSuccessor(Node *successor, TwoThreeTree *tree)
 
         else if (predecessor->children[1] == successor)
         {
-            successor->keys[0] = predecessor->keys[0];
-            successor->key_count = 1;
-            predecessor->keys[0] = 0;
-            predecessor->key_count--;
             Node *joinNode = predecessor->children[0];
 
             if (predecessor->children[1]->key_count == 2)
@@ -691,6 +707,11 @@ void fillSuccessor(Node *successor, TwoThreeTree *tree)
 
             else
             {
+                successor->keys[0] = predecessor->keys[0];
+                successor->key_count = 1;
+                predecessor->keys[0] = predecessor->keys[1];
+                predecessor->keys[1] = 0;
+                predecessor->key_count--;
                 predecessor->children[0] = successor;
                 predecessor->child_count--;
                 join(successor, joinNode);
@@ -707,19 +728,15 @@ void fillSuccessor(Node *successor, TwoThreeTree *tree)
 
     if (predecessor->key_count == 1) // if predecessor has 1 key working with case 1
     {
-        successor->keys[0] = predecessor->keys[0];
-        successor->key_count = 1;
-        predecessor->keys[0] = 0;
-        predecessor->key_count--;
         Node *joinNode;
         if (predecessor->children[0] == successor)
         {
             joinNode = predecessor->children[2];
-        } else
-        {
-            joinNode = predecessor->children[0]; 
         }
-
+        else
+        {
+            joinNode = predecessor->children[0];
+        }
 
         if (joinNode->key_count == 2)
         {
@@ -728,8 +745,13 @@ void fillSuccessor(Node *successor, TwoThreeTree *tree)
 
         else
         {
+            successor->keys[0] = predecessor->keys[0];
+            successor->key_count = 1;
+            predecessor->keys[0] = predecessor->keys[1];
+            predecessor->keys[1] = 0;
             predecessor->children[0] = successor;
             predecessor->child_count--;
+            predecessor->key_count--;
             join(successor, joinNode);
         }
 
@@ -822,6 +844,7 @@ Node *searchPredecessor(Node *node, TwoThreeTree *tree)
 
     return temp;
 }
+
 int main()
 {
     TwoThreeTree *tree = malloc(sizeof(TwoThreeTree));
@@ -837,6 +860,9 @@ int main()
     printTree(tree);
 
     delete (tree, 10);
+    delete (tree, 20);
+    delete (tree, 5);
+    delete (tree, 30);
 
     printf("\n");
 
