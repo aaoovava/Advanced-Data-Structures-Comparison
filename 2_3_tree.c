@@ -33,51 +33,41 @@ void printTree(TwoThreeTree *tree);
 void join(Node *successor, Node *joinNode);
 void share(Node *successor, Node *predecessor, Node *shareNode);
 
-void insertKey(Node *node, int key, TwoThreeTree *tree)
-{
-    if (node->key_count == 2)
-    {
-        if (key < node->keys[0])
-        {
-            node->keys[2] = node->keys[1];
-            node->keys[1] = node->keys[0];
-            node->keys[0] = key;
+void insertKey(Node *node, int key, TwoThreeTree *tree) {
+    if (node->key_count == 2) {
+        int temp_keys[3] = {node->keys[0], node->keys[1], key};
+        
+        // sorting
+        for (int i = 0; i < 2; i++) {
+            for (int j = i+1; j < 3; j++) {
+                if (temp_keys[i] > temp_keys[j]) {
+                    int temp = temp_keys[i];
+                    temp_keys[i] = temp_keys[j];
+                    temp_keys[j] = temp;
+                }
+            }
         }
-
-        if (key > node->keys[0] && key < node->keys[1])
-        {
-            node->keys[2] = node->keys[1];
-            node->keys[1] = key;
-        }
-
-        if (key > node->keys[1])
-        {
-            node->keys[2] = key;
-        }
-    }
-
-    else if (node->key_count == 1)
-    {
-        if (key > node->keys[0])
-        {
-            node->keys[1] = key;
-        }
-        else
-        {
-            node->keys[1] = node->keys[0];
-            node->keys[0] = key;
-        }
-    }
-    else
-    {
-        node->keys[0] = key;
-    }
-
-    node->key_count++;
-
-    if (node->key_count == 3)
-    {
+        
+        // update keys
+        node->keys[0] = temp_keys[0];
+        node->keys[1] = temp_keys[1];
+        node->keys[2] = temp_keys[2]; 
+        
+        node->key_count = 3;
         split(tree, node);
+    } 
+    else if (node->key_count == 1) {
+        if (key < node->keys[0]) {
+            node->keys[1] = node->keys[0];
+            node->keys[0] = key;
+        } else {
+            node->keys[1] = key;
+        }
+        node->key_count = 2;
+    } 
+    else {
+        node->keys[0] = key;
+        node->key_count = 1;
     }
 }
 
@@ -86,6 +76,7 @@ void split(TwoThreeTree *tree, Node *node)
     Node *temp = tree->root;
     int key = node->keys[1];
     int indexForFoundChild = 0;
+    int isRoot;
 
     if (temp->is_leaf && key == temp->keys[1]) // if root is leaf
     {
@@ -176,6 +167,18 @@ void split(TwoThreeTree *tree, Node *node)
             continue;
         }
 
+        if (key > temp->keys[1])
+        {
+            if (temp->children[2]->keys[1] == key)
+            {
+                leftMiddleRight = 2;
+                indexForFoundChild = 2;
+                break;
+            }
+            temp = temp->children[2];
+            continue;
+        }
+
         temp->child_count += 2;
     }
 
@@ -242,7 +245,6 @@ void split(TwoThreeTree *tree, Node *node)
 
             if (temp->child_count > 2)
             {
-                temp->children[1] = temp->children[2];
                 temp->children[2] = newRightOne;
                 temp->children[3] = newRightTwo;
 
@@ -501,7 +503,34 @@ void insert(TwoThreeTree *tree, int key)
             temp = temp->children[1];
             continue;
         }
+
+        if (key > temp->keys[1])
+        {
+            if (temp->children[2] == NULL)
+            {
+                insertKey(temp, key, tree);
+                break;
+            }
+            temp = temp->children[2];
+            continue;
+        }
     }
+}
+
+void freeTree(Node *node)
+{
+    if (node == NULL)
+        return;
+
+    for (int i = 0; i < 4; i++)
+    {
+        if (node->children[i] != NULL)
+        {
+            freeTree(node->children[i]);
+        }
+    }
+
+    free(node);
 }
 
 void deleteKey(Node *node, int key)
@@ -618,6 +647,7 @@ void delete(TwoThreeTree *tree, int key)
 
 void join(Node *successor, Node *joinNode)
 {
+    int key;
 
     if (successor->keys[0] > joinNode->keys[0])
     {
@@ -644,7 +674,7 @@ void join(Node *successor, Node *joinNode)
 
     successor->child_count = 0;
 
-    for (int i = 0; i < 4; i++)
+    for (int i = 0; i < 3; i++)
     {
         if (successor->children[i] != NULL)
         {
@@ -712,6 +742,7 @@ void fillSuccessor(Node *successor, TwoThreeTree *tree)
                 predecessor->keys[0] = predecessor->keys[1];
                 predecessor->keys[1] = 0;
                 predecessor->key_count--;
+                predecessor->children[1] = NULL;
                 predecessor->children[0] = successor;
                 predecessor->child_count--;
                 join(successor, joinNode);
@@ -732,10 +763,12 @@ void fillSuccessor(Node *successor, TwoThreeTree *tree)
         if (predecessor->children[0] == successor)
         {
             joinNode = predecessor->children[2];
+            
         }
         else
         {
             joinNode = predecessor->children[0];
+            
         }
 
         if (joinNode->key_count == 2)
@@ -745,6 +778,14 @@ void fillSuccessor(Node *successor, TwoThreeTree *tree)
 
         else
         {
+
+            if (predecessor->children[0] == successor)
+            {
+                predecessor->children[2] = NULL;
+            } else
+            {
+                predecessor->children[0] = NULL;
+            }
             successor->keys[0] = predecessor->keys[0];
             successor->key_count = 1;
             predecessor->keys[0] = predecessor->keys[1];
@@ -790,6 +831,10 @@ Node *search(TwoThreeTree *tree, int key)
             temp = temp->children[2];
             continue;
         }
+
+        if (temp->is_leaf )
+            break;
+        
     }
     return NULL;
 }
@@ -845,6 +890,14 @@ Node *searchPredecessor(Node *node, TwoThreeTree *tree)
     return temp;
 }
 
+void freeNode(Node *node)
+{
+    free(node->children[0]);
+    free(node->children[1]);
+    free(node->children[2]);
+    free(node);
+}
+
 int main()
 {
     TwoThreeTree *tree = malloc(sizeof(TwoThreeTree));
@@ -863,6 +916,16 @@ int main()
     delete (tree, 20);
     delete (tree, 5);
     delete (tree, 30);
+
+    insert(tree, 2);
+    insert(tree, 3);
+    insert(tree,16);
+    insert(tree, 17);
+
+    delete (tree, 15);
+
+
+    
 
     printf("\n");
 
