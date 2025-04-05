@@ -1,13 +1,16 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
+#include <sys/time.h>
+
 
 #define MAX_KEYS 2
 #define MAX_CHILDREN 3
 
 typedef struct Node
 {
-    int keys[3];
-    struct Node *children[4];
+    int keys[3]; 
+    struct Node *children[4]; // 0 - left child, 1 - middle child, 2 - right child (4 need for split)
     int key_count;
     int child_count;
     int is_leaf;
@@ -20,19 +23,20 @@ typedef struct
 
 // Function prototypes
 void split(TwoThreeTree *tree, Node *node);
-Node *search(TwoThreeTree *tree, int key);
+Node *ttt_search(TwoThreeTree *tree, int key);
 Node *searchPredecessor(Node *node, TwoThreeTree *tree);
 void fillSuccessor(Node *successor, TwoThreeTree *tree);
 void insertKey(Node *node, int key, TwoThreeTree *tree);
-void insert(TwoThreeTree *tree, int key);
+void ttt_insert(TwoThreeTree *tree, int key);
 void deleteKey(Node *node, int key);
-void delete(TwoThreeTree *tree, int key);
+void ttt_delete(TwoThreeTree *tree, int key);
 int isContains(Node *node, int key);
 void replaseBySuccessor(Node *node, int key, TwoThreeTree *tree);
 void printTree(TwoThreeTree *tree);
 void join(Node *successor, Node *joinNode);
 void share(Node *successor, Node *predecessor, Node *shareNode);
 
+// Helper function to insert a key into a node
 void insertKey(Node *node, int key, TwoThreeTree *tree) {
     if (node->key_count == 2) {
         int temp_keys[3] = {node->keys[0], node->keys[1], key};
@@ -71,10 +75,12 @@ void insertKey(Node *node, int key, TwoThreeTree *tree) {
     }
 }
 
+//The bigest split function ever (handle all cases)
 void split(TwoThreeTree *tree, Node *node)
 {
     Node *temp = tree->root;
     int key = node->keys[1];
+    int keyForSplit = node->keys[0];
     int indexForFoundChild = 0;
     int isRoot;
 
@@ -101,7 +107,7 @@ void split(TwoThreeTree *tree, Node *node)
         tree->root = temp;
         return;
     }
-    if (key == temp->keys[1])
+    if (key == temp->keys[1]) //spliting root when root is not leaf
     {
         Node *newRoot = malloc(sizeof(Node));
         Node *newLeft = malloc(sizeof(Node));
@@ -129,11 +135,17 @@ void split(TwoThreeTree *tree, Node *node)
     }
 
     int leftMiddleRight = 0; // 0 - left, 1 - middle, 2 - right
+    // searching for predecessor
     while (1)
     {
-        if (key < temp->keys[0])
+        if (temp == NULL)
         {
-            if (temp->children[0]->keys[1] == key)
+            printTree(tree);
+            exit(0);
+        }
+        if (keyForSplit < temp->keys[0])
+        {
+            if (temp->children[0]->keys[0] == keyForSplit)
             {
                 leftMiddleRight = 0;
                 indexForFoundChild = 0;
@@ -143,9 +155,9 @@ void split(TwoThreeTree *tree, Node *node)
             continue;
         }
 
-        if (key > temp->keys[0] && temp->keys[1] == 0)
+        if (keyForSplit > temp->keys[0] && temp->keys[1] == 0)
         {
-            if (temp->children[2]->keys[1] == key)
+            if (temp->children[2]->keys[0] == keyForSplit)
             {
                 leftMiddleRight = 2;
                 indexForFoundChild = 2;
@@ -155,9 +167,9 @@ void split(TwoThreeTree *tree, Node *node)
             continue;
         }
 
-        if (key > temp->keys[0] && key < temp->keys[1] && temp->keys[1] != 0)
+        if (keyForSplit > temp->keys[0] && keyForSplit < temp->keys[1] && temp->keys[1] != 0)
         {
-            if (temp->children[1]->keys[1] == key)
+            if (temp->children[1]->keys[0] == keyForSplit)
             {
                 leftMiddleRight = 1;
                 indexForFoundChild = 1;
@@ -167,9 +179,9 @@ void split(TwoThreeTree *tree, Node *node)
             continue;
         }
 
-        if (key > temp->keys[1])
+        if (keyForSplit > temp->keys[1])
         {
-            if (temp->children[2]->keys[1] == key)
+            if (temp->children[2]->keys[0] == keyForSplit)
             {
                 leftMiddleRight = 2;
                 indexForFoundChild = 2;
@@ -181,9 +193,10 @@ void split(TwoThreeTree *tree, Node *node)
 
         temp->child_count += 2;
     }
-
+    //simple case < 4 children
     if (temp->children[indexForFoundChild]->child_count <= 3)
     {
+        // left
         switch (leftMiddleRight)
         {
         case 0:
@@ -226,6 +239,7 @@ void split(TwoThreeTree *tree, Node *node)
 
             break;
         }
+        // middle
         case 2:
         {
             Node *newRightOne = malloc(sizeof(Node));
@@ -270,6 +284,7 @@ void split(TwoThreeTree *tree, Node *node)
 
             break;
         }
+        // right
         case 1:
         {
             Node *middleOne = malloc(sizeof(Node));
@@ -317,6 +332,7 @@ void split(TwoThreeTree *tree, Node *node)
         }
         }
     }
+    // wrost case we had 4 children
     else
     {
         Node *newLeft = malloc(sizeof(Node));
@@ -440,13 +456,13 @@ void printTree(TwoThreeTree *tree)
         printf("\n");
     }
 }
-
-void insert(TwoThreeTree *tree, int key)
+// Function to insert a key(main one)
+void ttt_insert(TwoThreeTree *tree, int key)
 {
     Node *root = tree->root;
     Node *temp = root;
 
-    if (root == NULL)
+    if (root == NULL) // if tree is empty
     {
         root = malloc(sizeof(Node));
         root->keys[0] = key;
@@ -456,12 +472,13 @@ void insert(TwoThreeTree *tree, int key)
         return;
     }
 
-    if (root->children[0] == NULL)
+    if (root->children[0] == NULL) // if root has no children
     {
         insertKey(root, key, tree);
         return;
     }
 
+    // find where to insert
     while (1)
     {
 
@@ -533,6 +550,7 @@ void freeTree(Node *node)
     free(node);
 }
 
+// Helper function to delete a key from a node
 void deleteKey(Node *node, int key)
 {
     if (node->keys[0] == key)
@@ -549,6 +567,8 @@ void deleteKey(Node *node, int key)
     }
 }
 
+
+// Helper function to replace a key with its successor
 void replaseBySuccessor(Node *node, int key, TwoThreeTree *tree)
 {
     Node *successor;
@@ -595,6 +615,7 @@ void replaseBySuccessor(Node *node, int key, TwoThreeTree *tree)
     }
 }
 
+// Helper function to check if a key is in a node
 int isContains(Node *node, int key)
 {
     if (node->keys[0] == key || node->keys[1] == key || node->keys[2] == key)
@@ -604,7 +625,8 @@ int isContains(Node *node, int key)
     return 0;
 }
 
-void delete(TwoThreeTree *tree, int key)
+// Function to delete a key from the tree (main one)
+void ttt_delete(TwoThreeTree *tree, int key)
 {
     Node *temp = tree->root;
 
@@ -626,13 +648,13 @@ void delete(TwoThreeTree *tree, int key)
         return;
     }
 
-    temp = search(tree, key);
+    temp = ttt_search(tree, key);
 
     if (temp->is_leaf && temp->key_count == 2) // if key is in leaf and leaf has 2 keys
     {
         deleteKey(temp, key);
     }
-    else if (temp->is_leaf && temp->key_count == 1)
+    else if (temp->is_leaf && temp->key_count == 1) // if key is in leaf and leaf has 1 key
     {
         deleteKey(temp, key);
         fillSuccessor(temp, tree);
@@ -645,6 +667,7 @@ void delete(TwoThreeTree *tree, int key)
     return;
 }
 
+// Helper function to join case
 void join(Node *successor, Node *joinNode)
 {
     int key;
@@ -685,6 +708,7 @@ void join(Node *successor, Node *joinNode)
     free(joinNode);
 }
 
+// Helper function to share case
 void share(Node *successor, Node *predecessor, Node *shareNode)
 {
     successor->keys[0] = predecessor->keys[0];
@@ -695,19 +719,20 @@ void share(Node *successor, Node *predecessor, Node *shareNode)
     shareNode->key_count = 1;
 }
 
+// Helper function to fill successor
 void fillSuccessor(Node *successor, TwoThreeTree *tree)
 {
-    if (successor == tree->root)
+    if (successor == tree->root) // if successor is root
     {
         tree->root = tree->root->children[0];
         return;
     }
 
-    Node *predecessor = searchPredecessor(successor, tree);
+    Node *predecessor = searchPredecessor(successor, tree); // finding predecessor
 
     if (predecessor->key_count == 2) // if predecessor has 2 keys working with case 2
     {
-        if (predecessor->children[2] == successor)
+        if (predecessor->children[2] == successor) // if successor is right child
         {
 
             Node *joinNode = predecessor->children[1]; // using like link for node wich will join or share with successor
@@ -728,14 +753,14 @@ void fillSuccessor(Node *successor, TwoThreeTree *tree)
             }
         }
 
-        else if (predecessor->children[1] == successor)
+        else if (predecessor->children[1] == successor) // if successor is middle child
         {
             Node *joinNode = predecessor->children[0];
 
             if (predecessor->children[1]->key_count == 2)
                 share(successor, predecessor, joinNode);
 
-            else
+            else 
             {
                 successor->keys[0] = predecessor->keys[0];
                 successor->key_count = 1;
@@ -749,6 +774,29 @@ void fillSuccessor(Node *successor, TwoThreeTree *tree)
             }
         }
 
+        else // if successor is left child
+        {
+            Node *joinNode = predecessor->children[1];
+
+            if (predecessor->children[1]->key_count == 2)
+                share(successor, predecessor, joinNode);
+
+            else
+            {
+                successor->keys[0] = predecessor->keys[0];
+                successor->key_count = 1;
+                predecessor->keys[0] = predecessor->keys[1];
+                predecessor->keys[1] = predecessor->keys[2];
+                predecessor->keys[2] = 0;
+                predecessor->key_count--;
+                predecessor->children[1] = NULL;
+                predecessor->children[0] = successor;
+                predecessor->child_count--;
+                join(successor, joinNode);
+            }
+        }
+
+
         if (predecessor->key_count == 0)
         {
             fillSuccessor(predecessor, tree);
@@ -757,7 +805,7 @@ void fillSuccessor(Node *successor, TwoThreeTree *tree)
         return;
     }
 
-    if (predecessor->key_count == 1) // if predecessor has 1 key working with case 1
+    if (predecessor->key_count == 1) // if predecessor has 1 key taking keys from predecessor children
     {
         Node *joinNode;
         if (predecessor->children[0] == successor)
@@ -803,7 +851,8 @@ void fillSuccessor(Node *successor, TwoThreeTree *tree)
     }
 }
 
-Node *search(TwoThreeTree *tree, int key)
+// Search function returns node 
+Node *ttt_search(TwoThreeTree *tree, int key)
 {
     Node *temp = tree->root;
 
@@ -839,6 +888,7 @@ Node *search(TwoThreeTree *tree, int key)
     return NULL;
 }
 
+// Helper function to find predecessor
 Node *searchPredecessor(Node *node, TwoThreeTree *tree)
 {
     Node *temp = tree->root;
@@ -898,38 +948,59 @@ void freeNode(Node *node)
     free(node);
 }
 
+double ttt_get_time() {
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    return tv.tv_sec + tv.tv_usec * 1e-6;
+}
+
+void test_two_three_tree(int num_operations) {
+    TwoThreeTree *tree = malloc(sizeof(TwoThreeTree));
+    tree->root = NULL;
+    
+    srand(time(NULL));
+    double start, end;
+    
+    start = ttt_get_time();
+    for(int i = 0; i < num_operations; i++) {
+        int key = rand() % (num_operations * 10);
+        ttt_insert(tree, key);
+    }
+    end = ttt_get_time();
+    printf("2-3 Tree Insert: %.6f sec\n", end - start);
+    
+    start = ttt_get_time();
+    for(int i = 0; i < num_operations; i++) {
+        int key = rand() % (num_operations * 10);
+        ttt_search(tree, key);
+    }
+    end = ttt_get_time();
+    printf("2-3 Tree Search: %.6f sec\n", end - start);
+    
+    start = ttt_get_time();
+    for(int i = 0; i < num_operations; i++) {
+        int key = rand() % (num_operations * 10);
+        ttt_delete(tree, key);
+    }
+    end = ttt_get_time();
+    printf("2-3 Tree Delete: %.6f sec\n", end - start);
+    
+    freeTree(tree->root);
+    free(tree);
+}
+
 int main()
 {
-    TwoThreeTree *tree = malloc(sizeof(TwoThreeTree));
-
-    insert(tree, 10);
-    insert(tree, 20);
-    insert(tree, 30);
-    insert(tree, 15);
-    insert(tree, 8);
-    insert(tree, 5);
-    insert(tree, 1);
-
-    printTree(tree);
-
-    delete (tree, 10);
-    delete (tree, 20);
-    delete (tree, 5);
-    delete (tree, 30);
-
-    insert(tree, 2);
-    insert(tree, 3);
-    insert(tree,16);
-    insert(tree, 17);
-
-    delete (tree, 15);
-
-
+    int test_sizes[] = {1000, 10000, 50000};
+    int num_tests = sizeof(test_sizes)/sizeof(test_sizes[0]);
     
-
-    printf("\n");
-
-    printTree(tree);
+    for(int i = 0; i < num_tests; i++) {
+        int n = test_sizes[i];
+        printf("\n=== Testing with %d operations ===\n", n);
+        
+        printf("\n-- 2-3 Tree --\n");
+        test_two_three_tree(n);
+    }
 
     return 0;
 }

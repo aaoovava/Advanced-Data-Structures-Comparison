@@ -1,5 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
+#include <sys/time.h>
 
 #define LOAD_FACTOR_UP 0.8
 #define LOAD_FACTOR_DOWN 0.2
@@ -105,7 +107,7 @@ void resize(HashTable *hashTable, int newCapacity)
     free(oldTable);
 }
 
-void insert(HashTable *hashTable, int key, Data data)
+void ht_insert(HashTable *hashTable, int key, Data data)
 {
     if ((double)(hashTable->size + hashTable->deletedCount) / hashTable->capacity > LOAD_FACTOR_UP)
     {
@@ -134,7 +136,7 @@ void insert(HashTable *hashTable, int key, Data data)
 }
 
 // returns NULL if not found (simple search)
-Data *search(HashTable *hashTable, int key)
+Data *ht_search(HashTable *hashTable, int key)
 {
     int index = hash1(key, hashTable->capacity);
     int step = hash2(key, hashTable->capacity);
@@ -155,7 +157,7 @@ Data *search(HashTable *hashTable, int key)
     return NULL;
 }
 
-int delete(HashTable *hashTable, int key)
+int ht_delete(HashTable *hashTable, int key)
 {
     int index = hash1(key, hashTable->capacity);
     int step = hash2(key, hashTable->capacity);
@@ -200,36 +202,59 @@ void printTable(HashTable *hashTable)
     }
 }
 
+double ht_get_current_time() {
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    return tv.tv_sec + tv.tv_usec * 1e-6;
+}
+
+void test_hash_table(int num_operations) {
+    HashTable *ht = createHashTable();
+    
+    srand(time(NULL));
+    double start, end;
+    
+    start = ht_get_current_time();
+    for(int i = 0; i < num_operations; i++) {
+        int key = rand() % (num_operations * 10);
+        Data d = {"Test", "User", 25};
+        ht_insert(ht, key, d);
+    }
+    end = ht_get_current_time();
+    printf("Hash Table Insert: %.6f sec\n", end - start);
+    
+    start = ht_get_current_time();
+    for(int i = 0; i < num_operations; i++) {
+        int key = rand() % (num_operations * 10);
+        ht_search(ht, key);
+    }
+    end = ht_get_current_time();
+    printf("Hash Table Search: %.6f sec\n", end - start);
+    
+    start = ht_get_current_time();
+    for(int i = 0; i < num_operations; i++) {
+        int key = rand() % (num_operations * 10);
+        ht_delete(ht, key);
+    }
+    end = ht_get_current_time();
+    printf("Hash Table Delete: %.6f sec\n", end - start);
+    
+    deleteHashTable(ht);
+}
+
 int main()
 {
 
-    HashTable *ht = createHashTable();
-
-    Data p1 = {"John", "Doe", 30};
-    Data p2 = {"Alice", "Smith", 25};
-
-    insert(ht, 1, p1);
-    insert(ht, 1002, p2);
-
-    printTable(ht);
-
-    Data *found = search(ht, 1);
-    if (found)
-    {
-        printf("Found: %s %s, %d\n", found->name, found->surname, found->age);
+    int test_sizes[] = {1000, 10000, 50000};
+    int num_tests = sizeof(test_sizes)/sizeof(test_sizes[0]);
+    
+    for(int i = 0; i < num_tests; i++) {
+        int n = test_sizes[i];
+        printf("\n=== Testing with %d operations ===\n", n);
+        
+        printf("\n-- Hash Table --\n");
+        test_hash_table(n);
     }
-
-    delete (ht, 1001);
-
-    printTable(ht);
-
-    found = search(ht, 1001);
-    if (!found)
-    {
-        printf("Element not found\n");
-    }
-
-    deleteHashTable(ht);
 
     return 0;
 }

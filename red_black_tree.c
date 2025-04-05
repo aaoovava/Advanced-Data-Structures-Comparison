@@ -1,4 +1,8 @@
 #include <stdlib.h>
+#include <stdio.h>
+#include <time.h>
+#include <sys/time.h>
+
 
 // Enum for node color
 typedef enum
@@ -24,11 +28,11 @@ typedef struct RedBlackTree
 } RedBlackTree;
 
 // Function prototypes
-void insert(RedBlackTree *tree, int key, void *value);
+void rb_insert(RedBlackTree *tree, int key, void *value);
 void insert_fixup(RedBlackTree *tree, Node *node);
 void left_rotate(RedBlackTree *tree, Node *x);
 void right_rotate(RedBlackTree *tree, Node *x);
-void delete(RedBlackTree *tree, int key);
+void rb_delete(RedBlackTree *tree, int key);
 void delete_node(RedBlackTree *tree, Node *z);
 void delete_fixup(RedBlackTree *tree, Node *x);
 void transplant(RedBlackTree *tree, Node *u, Node *v);
@@ -53,7 +57,7 @@ Color get_color(Node *node)
     return (node == NULL) ? BLACK : node->color;
 }
 
-void insert(RedBlackTree *tree, int key, void *value)
+void rb_insert(RedBlackTree *tree, int key, void *value)
 {
     Node *new_node = create_node(key, value);
 
@@ -198,7 +202,7 @@ void right_rotate(RedBlackTree *tree, Node *x)
 }
 
 // main fucntion for delete
-void delete(RedBlackTree *tree, int key)
+void rb_delete(RedBlackTree *tree, int key)
 {
     Node *temp = tree->root;
 
@@ -388,7 +392,7 @@ void delete_fixup(RedBlackTree *tree, Node *x)
     }
 }
 
-Node *search(RedBlackTree *tree, int key)
+Node *rb_search(RedBlackTree *tree, int key)
 {
     Node *current = tree->root;
     while (current != NULL && current->key != key)
@@ -405,18 +409,79 @@ Node *search(RedBlackTree *tree, int key)
     return current;
 }
 
-int main()
-{
+void free_node(Node *node) {
+    if (node == NULL) return;
+    
+    free_node(node->left);
+    free_node(node->right);
+    
+    free(node);
+}
+
+void free_red_black_tree(RedBlackTree *tree) {
+    if (tree == NULL) return;
+    
+    free_node(tree->root);
+    
+    free(tree);
+}
+
+double rb_get_current_time() {
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    return tv.tv_sec + tv.tv_usec * 1e-6;
+}
+
+void test_red_black_tree(int num_operations) {
     RedBlackTree tree;
     tree.root = NULL;
+    
+    srand(time(NULL));
+    double start, end;
+    
+    // Тест вставки
+    start = rb_get_current_time();
+    for(int i = 0; i < num_operations; i++) {
+        int key = rand() % (num_operations * 10);
+        rb_insert(&tree, key, NULL);
+    }
+    end = rb_get_current_time();
+    printf("Red-Black Tree Insert: %.6f sec\n", end - start);
+    
+    // Тест поиска
+    start = rb_get_current_time();
+    for(int i = 0; i < num_operations; i++) {
+        int key = rand() % (num_operations * 10);
+        rb_search(&tree, key);
+    }
+    end = rb_get_current_time();
+    printf("Red-Black Tree Search: %.6f sec\n", end - start);
+    
+    // Тест удаления
+    start = rb_get_current_time();
+    for(int i = 0; i < num_operations; i++) {
+        int key = rand() % (num_operations * 10);
+        rb_delete(&tree, key);
+    }
+    end = rb_get_current_time();
+    printf("Red-Black Tree Delete: %.6f sec\n", end - start);
 
-    insert(&tree, 10, "10");
-    insert(&tree, 20, "20");
-    insert(&tree, 30, "30");
-    insert(&tree, 40, "40");
-    insert(&tree, 35, "35");
-
-    delete (&tree, 20);
-
-    return 0;
+    free_red_black_tree(&tree);
 }
+
+
+// int main()
+// {
+//     RedBlackTree tree;
+//     tree.root = NULL;
+
+//     rb_insert(&tree, 10, "10");
+//     rb_insert(&tree, 20, "20");
+//     rb_insert(&tree, 30, "30");
+//     rb_insert(&tree, 40, "40");
+//     rb_insert(&tree, 35, "35");
+
+//     rb_delete (&tree, 20);
+
+//     return 0;
+// }
