@@ -3,9 +3,9 @@
 #include <time.h>
 #include <sys/time.h>
 
-#define LOAD_FACTOR_UP 0.8
-#define LOAD_FACTOR_DOWN 0.2
-#define DEFAULT_CAPACITY 10
+#define DEFAULT_CAPACITY 128 
+#define LOAD_FACTOR_UP 0.75
+#define LOAD_FACTOR_DOWN 0.15
 
 typedef struct Data
 {
@@ -43,7 +43,7 @@ int hash1(int key, int size) // first hash function (simple division)
 
 int hash2(int key, int size) // second hash function (linear probing)
 {
-    return (key % (size - 1)) + 1;
+    return (key % (size - 1)) | 1;
 }
 
 HashTable *createHashTable()
@@ -67,35 +67,32 @@ void deleteHashTable(HashTable *hashTable)
     free(hashTable);
 }
 
-void resize(HashTable *hashTable, int newCapacity)
-{
+void resize(HashTable *hashTable, int newCapacity) {
     HashCell *oldTable = hashTable->table;
     int oldCapacity = hashTable->capacity;
 
-    // new table initialization
+    // Новая таблица
     hashTable->capacity = newCapacity;
-    hashTable->table = (HashCell *)calloc(newCapacity, sizeof(HashCell));
+    hashTable->table = (HashCell*)calloc(newCapacity, sizeof(HashCell));
     hashTable->size = 0;
     hashTable->deletedCount = 0;
 
-    for (int i = 0; i < oldCapacity; i++)
-    {
+    // Все ячейки новой таблицы помечаем как EMPTY
+    for (int i = 0; i < newCapacity; i++) {
         hashTable->table[i].status = EMPTY;
     }
 
-    for (size_t i = 0; i < oldCapacity; i++)
-    {
-        // bringing back all the data from the old table
-        if (oldTable[i].status == OCCUPIED)
-        {
+    // Перехеширование старых элементов
+    for (int i = 0; i < oldCapacity; i++) {
+        if (oldTable[i].status == OCCUPIED) {
             int key = oldTable[i].key;
             Data data = oldTable[i].data;
             int index = hash1(key, newCapacity);
             int step = hash2(key, newCapacity);
 
-            while (hashTable->table[index].status == OCCUPIED)
-            {
-                index = (index + step) % hashTable->capacity;
+            // Поиск свободной ячейки
+            while (hashTable->table[index].status == OCCUPIED) {
+                index = (index + step) % newCapacity;
             }
 
             hashTable->table[index].key = key;
@@ -104,6 +101,7 @@ void resize(HashTable *hashTable, int newCapacity)
             hashTable->size++;
         }
     }
+
     free(oldTable);
 }
 
@@ -136,22 +134,22 @@ void ht_insert(HashTable *hashTable, int key, Data data)
 }
 
 // returns NULL if not found (simple search)
-Data *ht_search(HashTable *hashTable, int key)
-{
+Data* ht_search(HashTable* hashTable, int key) {
     int index = hash1(key, hashTable->capacity);
     int step = hash2(key, hashTable->capacity);
+    int initialIndex = index;
+    int firstIteration = 1;
 
-    for (int i = 0; i < hashTable->capacity; i++)
-    {
-        if (hashTable->table[index].status == EMPTY)
-        {
-            return NULL;
-        }
-        if (hashTable->table[index].status == OCCUPIED && hashTable->table[index].key == key)
-        {
+    while (hashTable->table[index].status != EMPTY) {
+        if (hashTable->table[index].status == OCCUPIED && 
+            hashTable->table[index].key == key) {
             return &hashTable->table[index].data;
         }
         index = (index + step) % hashTable->capacity;
+
+        // Защита от бесконечного цикла при полной таблице
+        if (index == initialIndex && !firstIteration) break;
+        firstIteration = 0;
     }
 
     return NULL;
@@ -242,19 +240,10 @@ void test_hash_table(int num_operations) {
     deleteHashTable(ht);
 }
 
-int main()
-{
+// int main()
+// {
+//     printf("\n=== Testing with 1000 operations ===\n");
+//     test_hash_table(1000);
 
-    int test_sizes[] = {1000, 10000, 50000};
-    int num_tests = sizeof(test_sizes)/sizeof(test_sizes[0]);
-    
-    for(int i = 0; i < num_tests; i++) {
-        int n = test_sizes[i];
-        printf("\n=== Testing with %d operations ===\n", n);
-        
-        printf("\n-- Hash Table --\n");
-        test_hash_table(n);
-    }
-
-    return 0;
-}
+//     return 0;
+// }

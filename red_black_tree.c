@@ -34,7 +34,7 @@ void left_rotate(RedBlackTree *tree, Node *x);
 void right_rotate(RedBlackTree *tree, Node *x);
 void rb_delete(RedBlackTree *tree, int key);
 void delete_node(RedBlackTree *tree, Node *z);
-void delete_fixup(RedBlackTree *tree, Node *x);
+void delete_fixup(RedBlackTree *tree, Node *x, Node *x_parent);
 void transplant(RedBlackTree *tree, Node *u, Node *v);
 Node *find_min(Node *node);
 
@@ -238,41 +238,32 @@ Node *find_max(Node *node)
     return node;
 }
 
-// helper function for delete
-void delete_node(RedBlackTree *tree, Node *z)
-{
+// In delete_node, pass z->parent as x_parent
+void delete_node(RedBlackTree *tree, Node *z) {
     Node *y = z;
     Node *x;
     Color y_original_color = y->color;
+    Node *x_parent = NULL; // To track x's parent
 
-    // Case 1: No left child
-    if (z->left == NULL)
-    {
+    if (z->left == NULL) {
         x = z->right;
+        x_parent = z->parent; // Capture parent before transplant
         transplant(tree, z, z->right);
-    }
-    // Case 2: No right child
-    else if (z->right == NULL)
-    {
+    } else if (z->right == NULL) {
         x = z->left;
+        x_parent = z->parent; // Capture parent before transplant
         transplant(tree, z, z->left);
-    }
-    // Case 3: Two children
-    else
-    {
+    } else {
         y = find_max(z->left);
         y_original_color = y->color;
         x = y->left;
+        x_parent = y->parent; // x's parent is y's parent initially
 
-        // If predecessor isn't direct child
-        if (y->parent != z)
-        {
+        if (y->parent != z) {
             transplant(tree, y, y->left);
             y->left = z->left;
             y->left->parent = y;
         }
-
-        // Replace z with y
         transplant(tree, z, y);
         y->right = z->right;
         y->right->parent = y;
@@ -281,114 +272,96 @@ void delete_node(RedBlackTree *tree, Node *z)
 
     free(z);
 
-    // Fix violations if deleted node was black
-    if (y_original_color == BLACK)
-    {
-        delete_fixup(tree, x);
+    if (y_original_color == BLACK) {
+        // Pass x and x_parent to delete_fixup
+        delete_fixup(tree, x, x_parent);
     }
 }
 
-// fixes tree after deletion
-void delete_fixup(RedBlackTree *tree, Node *x)
-{
-    // Continue fixing until we reach root or x is red
-    while (x != tree->root && get_color(x) == BLACK)
-    {
-        Node *parent = x ? x->parent : tree->root;
+void delete_fixup(RedBlackTree *tree, Node *x, Node *x_parent) {
+    while (x != tree->root && get_color(x) == BLACK) {
+        if (x_parent == NULL) {
+            x = tree->root;
+            continue;
+        }
 
-        // Case: x is left child
-        if (x == parent->left)
-        {
-            Node *sibling = parent->right;
+        if (x == x_parent->left) {
+            Node *sibling = x_parent->right;
+            if (sibling == NULL) {
+                break; // или обработка ошибки
+            }
 
-            // Case 1: Sibling is red (must have black children)
-            if (get_color(sibling) == RED)
-            {
+            // Case 1: Sibling is red
+            if (get_color(sibling) == RED) {
                 sibling->color = BLACK;
-                parent->color = RED;
-                left_rotate(tree, parent);
-                sibling = parent->right;
+                x_parent->color = RED;
+                left_rotate(tree, x_parent);
+                sibling = x_parent->right;
+                if (sibling == NULL) {
+                    break; // или обработка ошибки
+                }
             }
 
             // Case 2: Both sibling's children are black
-
-            if (get_color(sibling->left) == BLACK &&
-                get_color(sibling->right) == BLACK)
-            {
+            if (get_color(sibling->left) == BLACK && 
+                get_color(sibling->right) == BLACK) {
                 sibling->color = RED;
-                x = parent; // Move up to parent
-            }
-            else
-            {
-                // Case 3: Sibling's right child is black (left is red)
-                if (get_color(sibling->right) == BLACK)
-                {
-                    if (sibling->left)
-                        sibling->left->color = BLACK;
+                x = x_parent;
+                x_parent = x->parent;
+            } else {
+                // Cases 3 & 4
+                if (get_color(sibling->right) == BLACK) {
+                    if (sibling->left) sibling->left->color = BLACK;
                     sibling->color = RED;
                     right_rotate(tree, sibling);
-                    sibling = parent->right;
+                    sibling = x_parent->right;
                 }
-
-                // Case 4: Sibling's right child is red
-
-                sibling->color = parent->color;
-                parent->color = BLACK;
-                if (sibling->right)
-                    sibling->right->color = BLACK;
-                left_rotate(tree, parent);
-                x = tree->root; // Terminate loop
+                sibling->color = x_parent->color;
+                x_parent->color = BLACK;
+                if (sibling->right) sibling->right->color = BLACK;
+                left_rotate(tree, x_parent);
+                x = tree->root;
             }
-        }
-        // Mirror cases for right child
-        else
-        {
-            Node *sibling = parent->left;
+        } else {
+            // Mirror case for right child
+            Node *sibling = x_parent->left;
+            if (sibling == NULL) {
+                break; // или обработка ошибки
+            }
 
-            if (get_color(sibling) == RED)
-            {
+            if (get_color(sibling) == RED) {
                 sibling->color = BLACK;
-                parent->color = RED;
-                right_rotate(tree, parent);
-                sibling = parent->left;
+                x_parent->color = RED;
+                right_rotate(tree, x_parent);
+                sibling = x_parent->left;
+                if (sibling == NULL) {
+                    break; // или обработка ошибки
+                }
             }
 
-            if (get_color(sibling->right) == BLACK &&
-                get_color(sibling->left) == BLACK)
-            {
+            if (get_color(sibling->right) == BLACK && 
+                get_color(sibling->left) == BLACK) {
                 sibling->color = RED;
-                x = parent;
-            }
-            else
-            {
-
-                if (get_color(sibling->left) == BLACK)
-                {
-                    if (sibling->right)
-                        sibling->right->color = BLACK;
+                x = x_parent;
+                x_parent = x->parent;
+            } else {
+                if (get_color(sibling->left) == BLACK) {
+                    if (sibling->right) sibling->right->color = BLACK;
                     sibling->color = RED;
                     left_rotate(tree, sibling);
-                    sibling = parent->left;
+                    sibling = x_parent->left;
                 }
-
-                sibling->color = parent->color;
-                parent->color = BLACK;
-                if (sibling->left)
-                    sibling->left->color = BLACK;
-                right_rotate(tree, parent);
+                sibling->color = x_parent->color;
+                x_parent->color = BLACK;
+                if (sibling->left) sibling->left->color = BLACK;
+                right_rotate(tree, x_parent);
                 x = tree->root;
             }
         }
     }
 
-    // Set root color to black
-    if (x)
-    {
+    if (x != NULL) {
         x->color = BLACK;
-    }
-    else if (tree->root)
-    {
-        tree->root->color = BLACK;
     }
 }
 
@@ -466,22 +439,14 @@ void test_red_black_tree(int num_operations) {
     end = rb_get_current_time();
     printf("Red-Black Tree Delete: %.6f sec\n", end - start);
 
-    free_red_black_tree(&tree);
 }
 
 
 // int main()
 // {
-//     RedBlackTree tree;
-//     tree.root = NULL;
 
-//     rb_insert(&tree, 10, "10");
-//     rb_insert(&tree, 20, "20");
-//     rb_insert(&tree, 30, "30");
-//     rb_insert(&tree, 40, "40");
-//     rb_insert(&tree, 35, "35");
-
-//     rb_delete (&tree, 20);
+    
+//     test_red_black_tree(10000);
 
 //     return 0;
 // }

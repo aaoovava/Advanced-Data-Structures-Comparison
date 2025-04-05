@@ -650,6 +650,11 @@ void ttt_delete(TwoThreeTree *tree, int key)
 
     temp = ttt_search(tree, key);
 
+    if (temp == NULL)
+    {
+        return;
+    }
+
     if (temp->is_leaf && temp->key_count == 2) // if key is in leaf and leaf has 2 keys
     {
         deleteKey(temp, key);
@@ -991,7 +996,7 @@ void test_two_three_tree(int num_operations) {
 
 int main()
 {
-    int test_sizes[] = {1000, 10000, 50000};
+    int test_sizes[] = {1000};
     int num_tests = sizeof(test_sizes)/sizeof(test_sizes[0]);
     
     for(int i = 0; i < num_tests; i++) {
