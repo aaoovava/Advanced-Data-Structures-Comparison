@@ -4,7 +4,7 @@
 #include <sys/time.h>
 
 
-// Enum for node color
+// enum for node color
 typedef enum
 {
     RED,
@@ -18,7 +18,7 @@ typedef struct Node
     struct Node *left;   
     struct Node *right;  
     struct Node *parent; 
-    Color color;         // Node's color (RED or BLACK)
+    Color color;         // node's color (RED or BLACK)
 } Node;
 
 
@@ -27,7 +27,7 @@ typedef struct RedBlackTree
     Node *root;
 } RedBlackTree;
 
-// Function prototypes
+// function prototypes
 void rb_insert(RedBlackTree *tree, int key, void *value);
 void insert_fixup(RedBlackTree *tree, Node *node);
 void left_rotate(RedBlackTree *tree, Node *x);
@@ -47,7 +47,7 @@ Node *create_node(int key, void *value)
     node->left = NULL;
     node->right = NULL;
     node->parent = NULL;
-    node->color = RED; // New nodes are always red initially
+    node->color = RED; // new nodes are always red initially
     return node;
 }
 
@@ -61,14 +61,14 @@ void rb_insert(RedBlackTree *tree, int key, void *value)
 {
     Node *new_node = create_node(key, value);
 
-    // If tree is empty set new node as root
+    // if tree is empty set new node as root
     if (!tree->root)
     {
         tree->root = new_node;
     }
     else
     {
-        // Find insertion positioт
+        // find insertion positioт
         Node *current = tree->root;
         Node *parent = NULL;
 
@@ -81,7 +81,7 @@ void rb_insert(RedBlackTree *tree, int key, void *value)
                 current = current->right;
         }
 
-        // Set parent pointer and insert as left/right child
+        // set parent pointer and insert as left/right child
         new_node->parent = parent;
         if (key < parent->key)
             parent->left = new_node;
@@ -89,21 +89,21 @@ void rb_insert(RedBlackTree *tree, int key, void *value)
             parent->right = new_node;
     }
 
-    // Fix any Red-Black Tree misbalances
+    // fix any Red-Black Tree misbalances
     insert_fixup(tree, new_node);
 }
 
 void insert_fixup(RedBlackTree *tree, Node *node)
 {
-    // Continue fixing while parent is red (violation)
+    // continue fixing while parent is red (violation)
     while (get_color(node->parent) == RED)
     {
-        // Parent is left child of grandparent
+        // parent is left child of grandparent
         if (node->parent == node->parent->parent->left)
         {
             Node *uncle = node->parent->parent->right;
 
-            // Case 1: Uncle is red - recolor only
+            // case 1: uncle is red - recolor only
             if (get_color(uncle) == RED)
             {
                 node->parent->color = BLACK;
@@ -113,13 +113,13 @@ void insert_fixup(RedBlackTree *tree, Node *node)
             }
             else
             {
-                // Case 2: Uncle is black and node is right child - left rotate
+                // case 2: uncle is black and node is right child - left rotate
                 if (node == node->parent->right)
                 {
                     node = node->parent;
                     left_rotate(tree, node);
                 }
-                // Case 3: Uncle is black and node is left child - recolor and right rotate
+                // case 3: Uncle is black and node is left child - recolor and right rotate
                 node->parent->color = BLACK;
                 node->parent->parent->color = RED;
                 right_rotate(tree, node->parent->parent);
@@ -127,7 +127,7 @@ void insert_fixup(RedBlackTree *tree, Node *node)
         }
         else
         {
-            // Mirror cases when parent is right child of grandparent
+            // mirror cases when parent is right child of grandparent
             Node *uncle = node->parent->parent->left;
 
             if (get_color(uncle) == RED)
@@ -151,7 +151,7 @@ void insert_fixup(RedBlackTree *tree, Node *node)
         }
     }
 
-    // Ensure root is always black
+    // ensure root is always black
     tree->root->color = BLACK;
 }
 
