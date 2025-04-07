@@ -3,23 +3,22 @@
 #include <time.h>
 #include <string.h>
 
-// Структура данных для хранения в узле
 typedef struct Data {
     char firstName[20];
     char lastName[20];
     int age;
 } Data;
 
-// Структура узла Treap
+// Main struct for Treap
 typedef struct TreapNode {
     int key;
-    int priority;
+    int priority; // Random value
     Data data;
     struct TreapNode *left;
     struct TreapNode *right;
 } TreapNode;
 
-// Создание нового узла
+// Helper function for creating TreapNode
 TreapNode* createNode(int key, Data d) {
     TreapNode* node = (TreapNode*)malloc(sizeof(TreapNode));
     node->key = key;
@@ -29,7 +28,7 @@ TreapNode* createNode(int key, Data d) {
     return node;
 }
 
-// Разделение Treap на два по ключу
+// Split Treap (Helper function)
 void split(TreapNode* root, int key, TreapNode** left, TreapNode** right) {
     if (!root) {
         *left = *right = NULL;
@@ -42,7 +41,7 @@ void split(TreapNode* root, int key, TreapNode** left, TreapNode** right) {
     }
 }
 
-// Объединение двух Treap
+// Merge Treap (like two sub-trees)(Helper function)
 TreapNode* merge(TreapNode* left, TreapNode* right) {
     if (!left) return right;
     if (!right) return left;
@@ -56,7 +55,7 @@ TreapNode* merge(TreapNode* left, TreapNode* right) {
     }
 }
 
-// Вставка элемента
+// Main insert function
 TreapNode* tt_insert(TreapNode* root, int key, Data d) {
     TreapNode* node = createNode(key, d);
     TreapNode *left = NULL, *right = NULL;
@@ -64,7 +63,7 @@ TreapNode* tt_insert(TreapNode* root, int key, Data d) {
     return merge(merge(left, node), right);
 }
 
-// Поиск элемента
+// Reqursive search in tree
 TreapNode* tt_search(TreapNode* root, int key) {
     if (!root) return NULL;
     if (key == root->key) return root;
@@ -73,7 +72,7 @@ TreapNode* tt_search(TreapNode* root, int key) {
         tt_search(root->right, key);
 }
 
-// Удаление элемента
+// Main delete function
 TreapNode* tt_delete(TreapNode* root, int key) {
     if (!root) return NULL;
     
@@ -91,7 +90,7 @@ TreapNode* tt_delete(TreapNode* root, int key) {
     return root;
 }
 
-// Удаление всего Treap
+// Free Treap
 void freeTreap(TreapNode* root) {
     if (root) {
         freeTreap(root->left);
@@ -100,18 +99,25 @@ void freeTreap(TreapNode* root) {
     }
 }
 
-// Функция для получения текущего времени
+// ---- TESTS ---
 double tt_get_current_time() {
     return (double)clock() / CLOCKS_PER_SEC;
 }
 
-// Тестер производительности
+
+int tt_count_nodes(TreapNode* root) {
+    if (!root) return 0;
+    return 1 + tt_count_nodes(root->left) + tt_count_nodes(root->right);
+}
+
 void test_treap(int num_operations) {
     TreapNode *root = NULL;
     Data d = {"Test", "User", 25};
     double start, end;
-    
-    // Тест вставки
+    int node_count = 0;
+    size_t memory_used_kb = 0;
+
+    // Insert
     srand(time(NULL));
     start = tt_get_current_time();
     for(int i = 0; i < num_operations; i++) {
@@ -119,29 +125,37 @@ void test_treap(int num_operations) {
         root = tt_insert(root, key, d);
     }
     end = tt_get_current_time();
-    printf("Treap Insert: %.6f sec\n", end - start);
-    
-    // Тест поиска
+    printf("Insert: %.6f sec\tAVG: %.9f sec/op\n", 
+          end - start, (end - start)/num_operations);
+
+    // Memory usage calc
+    node_count = tt_count_nodes(root);
+    memory_used_kb = (node_count * sizeof(TreapNode)) / 1024;
+
+    // Search
     start = tt_get_current_time();
     for(int i = 0; i < num_operations; i++) {
         int key = rand() % (num_operations * 10);
         tt_search(root, key);
     }
     end = tt_get_current_time();
-    printf("Treap Search: %.6f sec\n", end - start);
-    
-    // Тест удаления
+    printf("Search: %.6f sec\tAVG: %.9f sec/op\n", 
+          end - start, (end - start)/num_operations);
+
+    // Delete
     start = tt_get_current_time();
     for(int i = 0; i < num_operations; i++) {
         int key = rand() % (num_operations * 10);
         root = tt_delete(root, key);
     }
     end = tt_get_current_time();
-    printf("Treap Delete: %.6f sec\n", end - start);
-    
+    printf("Delete: %.6f sec\tAVG: %.9f sec/op\n", 
+          end - start, (end - start)/num_operations);
+
+    printf("Memory used: %zu KB\n", memory_used_kb);
+
     freeTreap(root);
 }
-
 // int main() {
 //     test_treap(1000000); // Тест на 10,000 операций
 //     return 0;

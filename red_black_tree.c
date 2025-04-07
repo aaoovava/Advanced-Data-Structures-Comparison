@@ -405,40 +405,62 @@ double rb_get_current_time() {
     return tv.tv_sec + tv.tv_usec * 1e-6;
 }
 
+// Додано функцію для підрахунку вузлів
+int count_nodes(Node *node) {
+    if (node == NULL) return 0;
+    return 1 + count_nodes(node->left) + count_nodes(node->right);
+}
+
 void test_red_black_tree(int num_operations) {
     RedBlackTree tree;
     tree.root = NULL;
     
     srand(time(NULL));
     double start, end;
-    
+    size_t memory_used_kb = 0;
+    int node_count = 0;
+
     // Тест вставки
     start = rb_get_current_time();
     for(int i = 0; i < num_operations; i++) {
         int key = rand() % (num_operations * 10);
-        rb_insert(&tree, key, NULL);
+        Node *existing = rb_search(&tree, key);
+        if (!existing) {
+            rb_insert(&tree, key, NULL);
+        }
     }
     end = rb_get_current_time();
-    printf("Red-Black Tree Insert: %.6f sec\n", end - start);
-    
-    // Тест поиска
+    node_count = count_nodes(tree.root);
+    memory_used_kb = (node_count * sizeof(Node) + sizeof(RedBlackTree)) / 1024; // Конвертація в KB
+    printf("Insert: %.6f sec\tAVG: %.9f sec/op\n", 
+          end - start, (end - start) / num_operations);
+
+    // Тест пошуку
     start = rb_get_current_time();
     for(int i = 0; i < num_operations; i++) {
         int key = rand() % (num_operations * 10);
         rb_search(&tree, key);
     }
     end = rb_get_current_time();
-    printf("Red-Black Tree Search: %.6f sec\n", end - start);
-    
-    // Тест удаления
+    printf("Search: %.6f sec\tAVG: %.9f sec/op\n", 
+          end - start, (end - start) / num_operations);
+
+    // Тест видалення
     start = rb_get_current_time();
     for(int i = 0; i < num_operations; i++) {
         int key = rand() % (num_operations * 10);
         rb_delete(&tree, key);
     }
     end = rb_get_current_time();
-    printf("Red-Black Tree Delete: %.6f sec\n", end - start);
+    printf("Delete: %.6f sec\tAVG: %.9f sec/op\n", 
+          end - start, (end - start) / num_operations);
 
+    // Вивід пам'яті в KB
+    printf("Memory used: %zu KB (for %d nodes)\n", memory_used_kb, node_count);
+
+    // Очищення
+    free_node(tree.root);
+    tree.root = NULL;
 }
 
 

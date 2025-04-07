@@ -31,8 +31,8 @@ typedef struct HashCell
 typedef struct HashTable
 {
     HashCell *table;
-    int size;     // Current table size
-    int capacity; // Owerall table capacity
+    int size;     // current table size
+    int capacity; // owerall table capacity
     int deletedCount;
 } HashTable;
 
@@ -71,18 +71,18 @@ void resize(HashTable *hashTable, int newCapacity) {
     HashCell *oldTable = hashTable->table;
     int oldCapacity = hashTable->capacity;
 
-    // Новая таблица
+    // new hash table
     hashTable->capacity = newCapacity;
     hashTable->table = (HashCell*)calloc(newCapacity, sizeof(HashCell));
     hashTable->size = 0;
     hashTable->deletedCount = 0;
 
-    // Все ячейки новой таблицы помечаем как EMPTY
+    // set all cells to EMPTY
     for (int i = 0; i < newCapacity; i++) {
         hashTable->table[i].status = EMPTY;
     }
 
-    // Перехеширование старых элементов
+    // rehash old table
     for (int i = 0; i < oldCapacity; i++) {
         if (oldTable[i].status == OCCUPIED) {
             int key = oldTable[i].key;
@@ -90,7 +90,7 @@ void resize(HashTable *hashTable, int newCapacity) {
             int index = hash1(key, newCapacity);
             int step = hash2(key, newCapacity);
 
-            // Поиск свободной ячейки
+            // serch for free cell
             while (hashTable->table[index].status == OCCUPIED) {
                 index = (index + step) % newCapacity;
             }
@@ -212,6 +212,8 @@ void test_hash_table(int num_operations) {
     srand(time(NULL));
     double start, end;
     
+
+    // Тест вставки
     start = ht_get_current_time();
     for(int i = 0; i < num_operations; i++) {
         int key = rand() % (num_operations * 10);
@@ -219,27 +221,36 @@ void test_hash_table(int num_operations) {
         ht_insert(ht, key, d);
     }
     end = ht_get_current_time();
-    printf("Hash Table Insert: %.6f sec\n", end - start);
-    
+    printf("Insert: %.6f sec\tAVG: %.9f sec/op\n", 
+          end - start, (end - start)/num_operations);
+
+    // Тест пошуку
     start = ht_get_current_time();
     for(int i = 0; i < num_operations; i++) {
         int key = rand() % (num_operations * 10);
         ht_search(ht, key);
     }
     end = ht_get_current_time();
-    printf("Hash Table Search: %.6f sec\n", end - start);
-    
+    printf("Search: %.6f sec\tAVG: %.9f sec/op\n", 
+          end - start, (end - start)/num_operations);
+
+    // Тест видалення
     start = ht_get_current_time();
     for(int i = 0; i < num_operations; i++) {
         int key = rand() % (num_operations * 10);
         ht_delete(ht, key);
     }
     end = ht_get_current_time();
-    printf("Hash Table Delete: %.6f sec\n", end - start);
-    
+    printf("Delete: %.6f sec\tAVG: %.9f sec/op\n", 
+          end - start, (end - start)/num_operations);
+
+    // Розрахунок пам'яті
+    size_t memory_used = sizeof(HashTable) + (ht->capacity * sizeof(HashCell));
+    size_t memory_used_kb = memory_used / 1024;
+    printf("Memory used: %zu KB\n", memory_used_kb);
+
     deleteHashTable(ht);
 }
-
 // int main()
 // {
 //     printf("\n=== Testing with 1000 operations ===\n");
