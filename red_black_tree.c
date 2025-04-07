@@ -13,8 +13,8 @@ typedef enum
 
 typedef struct Node
 {
-    int key;             // Node's key (used for ordering)
-    void *value;         // Pointer to stored data
+    int key;             
+    void *value;        
     struct Node *left;   
     struct Node *right;  
     struct Node *parent; 
@@ -61,14 +61,14 @@ void rb_insert(RedBlackTree *tree, int key, void *value)
 {
     Node *new_node = create_node(key, value);
 
-    // If tree is empty, new node becomes root
+    // If tree is empty set new node as root
     if (!tree->root)
     {
         tree->root = new_node;
     }
     else
     {
-        // Find insertion position
+        // Find insertion positioт
         Node *current = tree->root;
         Node *parent = NULL;
 
@@ -109,7 +109,7 @@ void insert_fixup(RedBlackTree *tree, Node *node)
                 node->parent->color = BLACK;
                 uncle->color = BLACK;
                 node->parent->parent->color = RED;
-                node = node->parent->parent; // Move up to grandparent
+                node = node->parent->parent; // Move up to grandparent to check for balance
             }
             else
             {
@@ -157,14 +157,14 @@ void insert_fixup(RedBlackTree *tree, Node *node)
 
 void left_rotate(RedBlackTree *tree, Node *x)
 {
-    Node *y = x->right; // y is x's right child
+    Node *y = x->right; // y is x right child
 
-    // Turn y's left subtree into x's right subtree
+    // turn y left subtree into x right subtree
     x->right = y->left;
     if (y->left)
         y->left->parent = x;
 
-    // Link x's parent to y
+    // link x's parent to y
     y->parent = x->parent;
     if (!x->parent)
         tree->root = y; // x was root
@@ -173,21 +173,21 @@ void left_rotate(RedBlackTree *tree, Node *x)
     else
         x->parent->right = y;
 
-    // Put x on y's left
+    // put x on y's left
     y->left = x;
     x->parent = y;
 }
 
 void right_rotate(RedBlackTree *tree, Node *x)
 {
-    Node *y = x->left; // y is x's left child
+    Node *y = x->left; // y is x left child
 
-    // Turn y's right subtree into x's left subtree
+    // turn y right subtree into x left subtree
     x->left = y->right;
     if (y->right)
         y->right->parent = x;
 
-    // Link x's parent to y
+    // link x parent to y
     y->parent = x->parent;
     if (!x->parent)
         tree->root = y; // x was root
@@ -196,7 +196,7 @@ void right_rotate(RedBlackTree *tree, Node *x)
     else
         x->parent->left = y;
 
-    // Put x on y's right
+    //put x on y right
     y->right = x;
     x->parent = y;
 }
@@ -217,7 +217,7 @@ void rb_delete(RedBlackTree *tree, int key)
     delete_node(tree, temp);
 }
 
-// helper function for replace node with successor
+// helper function for replace node with its successor
 void transplant(RedBlackTree *tree, Node *u, Node *v)
 {
     if (u->parent == NULL)
@@ -230,7 +230,7 @@ void transplant(RedBlackTree *tree, Node *u, Node *v)
         v->parent = u->parent;
 }
 
-// find min node (successor) for replacement
+// find max node (successor) for replacement
 Node *find_max(Node *node)
 {
     while (node->right != NULL)
@@ -238,26 +238,26 @@ Node *find_max(Node *node)
     return node;
 }
 
-// In delete_node, pass z->parent as x_parent
+// helper function for delete(deling node)
 void delete_node(RedBlackTree *tree, Node *z) {
     Node *y = z;
     Node *x;
     Color y_original_color = y->color;
-    Node *x_parent = NULL; // To track x's parent
+    Node *x_parent = NULL; // to track x parent
 
     if (z->left == NULL) {
         x = z->right;
-        x_parent = z->parent; // Capture parent before transplant
+        x_parent = z->parent; // capture parent before transplant
         transplant(tree, z, z->right);
     } else if (z->right == NULL) {
         x = z->left;
-        x_parent = z->parent; // Capture parent before transplant
+        x_parent = z->parent; // capture parent before transplant
         transplant(tree, z, z->left);
-    } else {
+    } else {  // replace with successor
         y = find_max(z->left);
         y_original_color = y->color;
         x = y->left;
-        x_parent = y->parent; // x's parent is y's parent initially
+        x_parent = y->parent; // x parent is y parent initially
 
         if (y->parent != z) {
             transplant(tree, y, y->left);
@@ -273,49 +273,52 @@ void delete_node(RedBlackTree *tree, Node *z) {
     free(z);
 
     if (y_original_color == BLACK) {
-        // Pass x and x_parent to delete_fixup
+        // pass x and x_parent to delete_fixup
         delete_fixup(tree, x, x_parent);
     }
 }
-
+// helper function for delete (fixing up after deletion)
 void delete_fixup(RedBlackTree *tree, Node *x, Node *x_parent) {
+    // fix the tree until x is root or x becomes red
     while (x != tree->root && get_color(x) == BLACK) {
         if (x_parent == NULL) {
             x = tree->root;
             continue;
         }
 
+        // case when x is left child
         if (x == x_parent->left) {
             Node *sibling = x_parent->right;
             if (sibling == NULL) {
-                break; // или обработка ошибки
+                break; 
             }
 
-            // Case 1: Sibling is red
+            // case 1: sibling is red
             if (get_color(sibling) == RED) {
                 sibling->color = BLACK;
                 x_parent->color = RED;
                 left_rotate(tree, x_parent);
                 sibling = x_parent->right;
                 if (sibling == NULL) {
-                    break; // или обработка ошибки
+                    break; 
                 }
             }
 
-            // Case 2: Both sibling's children are black
+            // case 2: both sibling's children are black
             if (get_color(sibling->left) == BLACK && 
                 get_color(sibling->right) == BLACK) {
                 sibling->color = RED;
                 x = x_parent;
                 x_parent = x->parent;
             } else {
-                // Cases 3 & 4
+                // case 3: sibling's right child is black (left is red)
                 if (get_color(sibling->right) == BLACK) {
                     if (sibling->left) sibling->left->color = BLACK;
                     sibling->color = RED;
                     right_rotate(tree, sibling);
                     sibling = x_parent->right;
                 }
+                // case 4: sibling's right child is red
                 sibling->color = x_parent->color;
                 x_parent->color = BLACK;
                 if (sibling->right) sibling->right->color = BLACK;
@@ -323,34 +326,38 @@ void delete_fixup(RedBlackTree *tree, Node *x, Node *x_parent) {
                 x = tree->root;
             }
         } else {
-            // Mirror case for right child
+            // mirror cases when x is right child
             Node *sibling = x_parent->left;
             if (sibling == NULL) {
-                break; // или обработка ошибки
+                break; 
             }
 
+            // case 1 (mirror): sibling is red
             if (get_color(sibling) == RED) {
                 sibling->color = BLACK;
                 x_parent->color = RED;
                 right_rotate(tree, x_parent);
                 sibling = x_parent->left;
                 if (sibling == NULL) {
-                    break; // или обработка ошибки
+                    break; 
                 }
             }
 
+            // case 2 (mirror): both sibling's children are black
             if (get_color(sibling->right) == BLACK && 
                 get_color(sibling->left) == BLACK) {
                 sibling->color = RED;
                 x = x_parent;
                 x_parent = x->parent;
             } else {
+                // case 3 (mirror): sibling's left child is black (right is red)
                 if (get_color(sibling->left) == BLACK) {
                     if (sibling->right) sibling->right->color = BLACK;
                     sibling->color = RED;
                     left_rotate(tree, sibling);
                     sibling = x_parent->left;
                 }
+                // case 4 (mirror): sibling's left child is red
                 sibling->color = x_parent->color;
                 x_parent->color = BLACK;
                 if (sibling->left) sibling->left->color = BLACK;
@@ -364,7 +371,7 @@ void delete_fixup(RedBlackTree *tree, Node *x, Node *x_parent) {
         x->color = BLACK;
     }
 }
-
+// main search function
 Node *rb_search(RedBlackTree *tree, int key)
 {
     Node *current = tree->root;
@@ -398,14 +405,14 @@ void free_red_black_tree(RedBlackTree *tree) {
     
     free(tree);
 }
-
+// ---- TESTS ----
 double rb_get_current_time() {
     struct timeval tv;
     gettimeofday(&tv, NULL);
     return tv.tv_sec + tv.tv_usec * 1e-6;
 }
 
-// Додано функцію для підрахунку вузлів
+
 int count_nodes(Node *node) {
     if (node == NULL) return 0;
     return 1 + count_nodes(node->left) + count_nodes(node->right);
@@ -420,7 +427,7 @@ void test_red_black_tree(int num_operations) {
     size_t memory_used_kb = 0;
     int node_count = 0;
 
-    // Тест вставки
+    // Insert
     start = rb_get_current_time();
     for(int i = 0; i < num_operations; i++) {
         int key = rand() % (num_operations * 10);
@@ -431,11 +438,11 @@ void test_red_black_tree(int num_operations) {
     }
     end = rb_get_current_time();
     node_count = count_nodes(tree.root);
-    memory_used_kb = (node_count * sizeof(Node) + sizeof(RedBlackTree)) / 1024; // Конвертація в KB
+    memory_used_kb = (node_count * sizeof(Node) + sizeof(RedBlackTree)) / 1024; 
     printf("Insert: %.6f sec\tAVG: %.9f sec/op\n", 
           end - start, (end - start) / num_operations);
 
-    // Тест пошуку
+    // Search
     start = rb_get_current_time();
     for(int i = 0; i < num_operations; i++) {
         int key = rand() % (num_operations * 10);
@@ -445,7 +452,7 @@ void test_red_black_tree(int num_operations) {
     printf("Search: %.6f sec\tAVG: %.9f sec/op\n", 
           end - start, (end - start) / num_operations);
 
-    // Тест видалення
+    // Delete
     start = rb_get_current_time();
     for(int i = 0; i < num_operations; i++) {
         int key = rand() % (num_operations * 10);
@@ -455,10 +462,8 @@ void test_red_black_tree(int num_operations) {
     printf("Delete: %.6f sec\tAVG: %.9f sec/op\n", 
           end - start, (end - start) / num_operations);
 
-    // Вивід пам'яті в KB
     printf("Memory used: %zu KB (for %d nodes)\n", memory_used_kb, node_count);
 
-    // Очищення
     free_node(tree.root);
     tree.root = NULL;
 }
@@ -468,7 +473,7 @@ void test_red_black_tree(int num_operations) {
 // {
 
     
-//     test_red_black_tree(10000);
+//     test_red_black_tree(1000000);
 
 //     return 0;
 // }

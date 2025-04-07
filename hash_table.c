@@ -41,11 +41,11 @@ int hash1(int key, int size) // first hash function (simple division)
     return key % size;
 }
 
-int hash2(int key, int size) // second hash function (linear probing)
+int hash2(int key, int size) // second hash function garantees odd numbers
 {
     return (key % (size - 1)) | 1;
 }
-
+// create new hash table
 HashTable *createHashTable()
 {
     HashTable *hashTable = malloc(sizeof(HashTable));
@@ -66,7 +66,7 @@ void deleteHashTable(HashTable *hashTable)
     free(hashTable->table);
     free(hashTable);
 }
-
+// helper function for resizing
 void resize(HashTable *hashTable, int newCapacity) {
     HashCell *oldTable = hashTable->table;
     int oldCapacity = hashTable->capacity;
@@ -105,8 +105,10 @@ void resize(HashTable *hashTable, int newCapacity) {
     free(oldTable);
 }
 
+// main insert function
 void ht_insert(HashTable *hashTable, int key, Data data)
 {
+    // check if we need to resize
     if ((double)(hashTable->size + hashTable->deletedCount) / hashTable->capacity > LOAD_FACTOR_UP)
     {
         resize(hashTable, hashTable->capacity * 2);
@@ -114,10 +116,10 @@ void ht_insert(HashTable *hashTable, int key, Data data)
 
     int index = hash1(key, hashTable->capacity);
     int step = hash2(key, hashTable->capacity);
-
+    
+    // serch for free cell
     while (hashTable->table[index].status == OCCUPIED)
     {
-        // update data for existing key
         if (hashTable->table[index].key == key)
         {
             hashTable->table[index].data = data;
@@ -127,6 +129,7 @@ void ht_insert(HashTable *hashTable, int key, Data data)
         index = (index + step) % hashTable->capacity;
     }
 
+    //fill the free cell
     hashTable->table[index].key = key;
     hashTable->table[index].data = data;
     hashTable->table[index].status = OCCUPIED;
@@ -138,7 +141,7 @@ Data* ht_search(HashTable* hashTable, int key) {
     int index = hash1(key, hashTable->capacity);
     int step = hash2(key, hashTable->capacity);
     int initialIndex = index;
-    int firstIteration = 1;
+    int firstIteration = 1; // to prevent infinite loop (flag for first iteration)
 
     while (hashTable->table[index].status != EMPTY) {
         if (hashTable->table[index].status == OCCUPIED && 
@@ -147,7 +150,7 @@ Data* ht_search(HashTable* hashTable, int key) {
         }
         index = (index + step) % hashTable->capacity;
 
-        // Защита от бесконечного цикла при полной таблице
+        // if we hadd full table that helping to protect from infinite loop
         if (index == initialIndex && !firstIteration) break;
         firstIteration = 0;
     }
@@ -172,6 +175,7 @@ int ht_delete(HashTable *hashTable, int key)
             hashTable->size--;
             hashTable->deletedCount++;
 
+            // check if we need to resize
             if ((double)(hashTable->size + hashTable->deletedCount) / hashTable->capacity < LOAD_FACTOR_DOWN && hashTable->capacity > DEFAULT_CAPACITY)
             {
                 resize(hashTable, hashTable->capacity / 2);
@@ -180,7 +184,6 @@ int ht_delete(HashTable *hashTable, int key)
         }
         index = (index + step) % hashTable->capacity;
     }
-
     return 0;
 }
 
@@ -200,6 +203,7 @@ void printTable(HashTable *hashTable)
     }
 }
 
+//---- TESTS ----
 double ht_get_current_time() {
     struct timeval tv;
     gettimeofday(&tv, NULL);
@@ -213,7 +217,7 @@ void test_hash_table(int num_operations) {
     double start, end;
     
 
-    // Тест вставки
+    // Insert
     start = ht_get_current_time();
     for(int i = 0; i < num_operations; i++) {
         int key = rand() % (num_operations * 10);
@@ -224,7 +228,7 @@ void test_hash_table(int num_operations) {
     printf("Insert: %.6f sec\tAVG: %.9f sec/op\n", 
           end - start, (end - start)/num_operations);
 
-    // Тест пошуку
+    // Search
     start = ht_get_current_time();
     for(int i = 0; i < num_operations; i++) {
         int key = rand() % (num_operations * 10);
@@ -234,7 +238,7 @@ void test_hash_table(int num_operations) {
     printf("Search: %.6f sec\tAVG: %.9f sec/op\n", 
           end - start, (end - start)/num_operations);
 
-    // Тест видалення
+    // Delete
     start = ht_get_current_time();
     for(int i = 0; i < num_operations; i++) {
         int key = rand() % (num_operations * 10);
@@ -244,7 +248,7 @@ void test_hash_table(int num_operations) {
     printf("Delete: %.6f sec\tAVG: %.9f sec/op\n", 
           end - start, (end - start)/num_operations);
 
-    // Розрахунок пам'яті
+    // Memory usage
     size_t memory_used = sizeof(HashTable) + (ht->capacity * sizeof(HashCell));
     size_t memory_used_kb = memory_used / 1024;
     printf("Memory used: %zu KB\n", memory_used_kb);

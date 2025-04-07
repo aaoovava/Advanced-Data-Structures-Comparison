@@ -9,7 +9,7 @@ typedef struct Data {
     int age;
 } Data;
 
-// Main struct for Treap
+// main struct for Treap
 typedef struct TreapNode {
     int key;
     int priority; // Random value
@@ -18,7 +18,7 @@ typedef struct TreapNode {
     struct TreapNode *right;
 } TreapNode;
 
-// Helper function for creating TreapNode
+// helper function for creating TreapNode
 TreapNode* createNode(int key, Data d) {
     TreapNode* node = (TreapNode*)malloc(sizeof(TreapNode));
     node->key = key;
@@ -28,10 +28,11 @@ TreapNode* createNode(int key, Data d) {
     return node;
 }
 
-// Split Treap (Helper function)
+// split Treap onto two sub-trees depending on key (Helper function) 
 void split(TreapNode* root, int key, TreapNode** left, TreapNode** right) {
     if (!root) {
-        *left = *right = NULL;
+        *left = NULL;
+        *right = NULL;
     } else if (root->key <= key) {
         split(root->right, key, &root->right, right);
         *left = root;
@@ -41,7 +42,7 @@ void split(TreapNode* root, int key, TreapNode** left, TreapNode** right) {
     }
 }
 
-// Merge Treap (like two sub-trees)(Helper function)
+// merge Treap (like two sub-trees into one the biggest key becomes root) (Helper function)
 TreapNode* merge(TreapNode* left, TreapNode* right) {
     if (!left) return right;
     if (!right) return left;
@@ -55,24 +56,23 @@ TreapNode* merge(TreapNode* left, TreapNode* right) {
     }
 }
 
-// Main insert function
+// main insert function
 TreapNode* tt_insert(TreapNode* root, int key, Data d) {
     TreapNode* node = createNode(key, d);
-    TreapNode *left = NULL, *right = NULL;
+    TreapNode *left = NULL;
+    TreapNode *right = NULL;
     split(root, key, &left, &right);
     return merge(merge(left, node), right);
 }
 
-// Reqursive search in tree
+// reqursive search in tree
 TreapNode* tt_search(TreapNode* root, int key) {
     if (!root) return NULL;
     if (key == root->key) return root;
-    return key < root->key ? 
-        tt_search(root->left, key) : 
-        tt_search(root->right, key);
+    return key < root->key ? tt_search(root->left, key) :  tt_search(root->right, key);
 }
 
-// Main delete function
+// main delete function
 TreapNode* tt_delete(TreapNode* root, int key) {
     if (!root) return NULL;
     
@@ -90,7 +90,7 @@ TreapNode* tt_delete(TreapNode* root, int key) {
     return root;
 }
 
-// Free Treap
+// free Treap
 void freeTreap(TreapNode* root) {
     if (root) {
         freeTreap(root->left);
@@ -157,6 +157,6 @@ void test_treap(int num_operations) {
     freeTreap(root);
 }
 // int main() {
-//     test_treap(1000000); // Тест на 10,000 операций
+//     test_treap(1000000);
 //     return 0;
 // }
